@@ -1,7 +1,7 @@
 [Unit]
 Description=Raspberry Pi GPIO-PPS-to-NTP-SHM translator
 Documentation=https://vanheusden.com/time/rpi_gpio_ntp/
-After=gps0.service
+Require=gps0.service
 After=gpsd.service
 After=ntp.service
 
