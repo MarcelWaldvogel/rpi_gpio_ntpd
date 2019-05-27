@@ -70,11 +70,18 @@ int write_pidfile(const char *const fname)
 	return 0;
 }
 
-struct shmTime * get_shm_pointer(const int unitNr)
+struct shmTime * get_shm_pointer(const int unitNr, const int shmflags, int shmwait)
 {
 	void *addr = NULL;
 	struct shmTime *pst = NULL;
-	int shmid = shmget(NTP_KEY + unitNr, sizeof(struct shmTime), IPC_CREAT);
+	int shmid;
+	do {
+		shmid = shmget(NTP_KEY + unitNr, sizeof(struct shmTime), shmflags);
+		if (shmid != -1)
+			break;
+		shmwait--;
+		sleep(1);
+	} while (shmwait != 0);
 	if (shmid == -1)
 		error_exit("get_shm_pointer: shmget failed");
 
@@ -325,6 +332,8 @@ void lock_in_memory(void)
 void help(void)
 {
 	fprintf(stderr, "-N x    x must be 0...3, it is the NTP shared memory unit number\n");
+	fprintf(stderr, "-c x    create shared memory segment, use permissions x (typically 600 or 666)\n");
+	fprintf(stderr, "-C x    wait up to x seconds for the creating of the shared memory segment (by ntpd or gpsd); x<=0 means forever\n");
 	fprintf(stderr, "-g x    gpio pin to listen on\n");
 	fprintf(stderr, "-G x    explicit path to the gpio-pin-path, for special cases like the cubieboard1 (/sys.../gpio1_pg9 instead of /sys.../gpio1). Note: you need to \"export\" and configure the pin in this use-case by hand.\n");
 	fprintf(stderr, "-d      debug mode\n");
@@ -347,13 +356,14 @@ int main(int argc, char *argv[])
 	int gpio_pps_in_fd = -1;
 	char do_fork = 1, gpio_pps_out_pin_value = 1;
 	int c = -1;
+	int shmflags = 0, shmwait = 1;
 	char edge_both = 0, polling = 0;
 	double idle_factor = 0.95;
 	int rebase = -1;
 
 	printf("rpi_gpio_ntp v" VERSION ", (C) 2013-2015 by folkert@vanheusden.com\n\n");
 
-	while((c = getopt(argc, argv, "R:G:i:bp:fN:g:F:dPh")) != -1)
+	while((c = getopt(argc, argv, "R:G:i:bp:fN:g:F:dPhc:")) != -1)
 	{
 		switch(c)
 		{
@@ -387,6 +397,14 @@ int main(int argc, char *argv[])
 
 			case 'N':
 				unit = atoi(optarg);
+				break;
+
+			case 'c':
+				shmflags = strtol(optarg, NULL, 8) | O_CREAT;
+				break;
+
+			case 'C':
+				shmwait = atoi(optarg);
 				break;
 
 			case 'g':
@@ -441,7 +459,7 @@ int main(int argc, char *argv[])
 	lock_in_memory();
 
 	/* connect to ntp */
-	pst = get_shm_pointer(unit);
+	pst = get_shm_pointer(unit, shmflags, shmwait);
 
 	if (gpio_pps_in_pin_path == NULL)
 	{
