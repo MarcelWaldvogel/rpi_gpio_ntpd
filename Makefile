@@ -19,6 +19,7 @@ install: rpi_gpio_ntp
 	${CFGINST} systemd/rpi_gpio_ntp.service /etc/systemd/system/
 	${CFGINST} systemd/gps0.service         /etc/systemd/system/
 	systemctl daemon-reload
+	systemctl enable gps0 rpi_gpio_ntp --now
 
 clean:
 	rm -f $(OBJS) rpi_gpio_ntp
