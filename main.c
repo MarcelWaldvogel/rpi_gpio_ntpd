@@ -363,7 +363,7 @@ int main(int argc, char *argv[])
 
 	printf("rpi_gpio_ntp v" VERSION ", (C) 2013-2015 by folkert@vanheusden.com\n\n");
 
-	while((c = getopt(argc, argv, "R:G:i:bp:fN:g:F:dPhc:")) != -1)
+	while((c = getopt(argc, argv, "R:G:i:bp:fN:g:F:dPhc:C:")) != -1)
 	{
 		switch(c)
 		{
